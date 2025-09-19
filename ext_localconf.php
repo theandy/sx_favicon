@@ -1,5 +1,6 @@
 <?php
 defined('TYPO3') || die();
+error_log('[sx_favicon] ext_localconf was executed');
 
 call_user_func(function () {
     // FE Middleware: stabile Root-Pfade wie /favicon.ico bedienen
