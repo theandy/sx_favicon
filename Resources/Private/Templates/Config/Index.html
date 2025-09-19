@@ -1,0 +1,45 @@
+<?php
+/** @var \TYPO3\CMS\Core\Site\Entity\Site[] $sites */
+?>
+<div class="container">
+    <h1>Favicons generieren</h1>
+    <form method="post" action="">
+        <div class="form-group">
+            <label>Site</label>
+            <select name="site_identifier" class="form-control" required>
+                <?php foreach ($sites as $site): ?>
+                <option value="<?= htmlspecialchars($site->getIdentifier()) ?>">
+                    <?= htmlspecialchars($site->getIdentifier()) ?> (<?= htmlspecialchars($site->getBase()) ?>)
+                </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>SVG (FAL FileReference UID)</label>
+            <input type="number" name="svg" class="form-control" placeholder="UID der FileReference">
+        </div>
+
+        <div class="form-group">
+            <label>PNG/JPG (Light) – FAL FileReference UID</label>
+            <input type="number" name="light" class="form-control" placeholder="UID der FileReference">
+        </div>
+
+        <div class="form-group">
+            <label>PNG/JPG (Dark) – FAL FileReference UID</label>
+            <input type="number" name="dark" class="form-control" placeholder="UID der FileReference">
+        </div>
+
+        <p class="help">
+            Hinweis: Für ein schnelles, modulfähiges Grundgerüst verwenden wir hier einfache UID-Felder.
+            Du kannst das Formular später auf richtige FAL-Picker umstellen (FormEngine), die Logik bleibt identisch.
+        </p>
+
+        <button class="btn btn-primary" type="submit" name="action" value="save">Speichern &amp; Generieren</button>
+    </form>
+
+    <hr>
+
+    <h2>Einbinden im Frontend</h2>
+    <pre>{sxFavicon:tags() -> f:format.raw()}</pre>
+</div>

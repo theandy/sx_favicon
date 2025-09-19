@@ -1,0 +1,23 @@
+{
+  "name": "andreas-loewer/sx-favicon",
+  "description": "Generiert Favicons aus SVG/PNG/JPG-Quellen und liefert sie unter stabilen Root-Pfaden wie /favicon.ico aus.",
+  "type": "typo3-cms-extension",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.1",
+    "typo3/cms-core": "^12.4"
+  },
+  "suggest": {
+    "ext-imagick": "Für hochwertige ICO/PNG-Generierung"
+  },
+  "autoload": {
+    "psr-4": {
+      "AndreasLoewer\\SxFavicon\\": "Classes/"
+    }
+  },
+  "extra": {
+    "typo3/cms": {
+      "extension-key": "sx_favicon"
+    }
+  }
+}
