@@ -1,8 +1,16 @@
+# EXT:sx_favicon/Configuration/Services.yaml
 services:
   _defaults:
     autowire: true
     autoconfigure: true
     public: false
 
+  # Alle Klassen der Extension als Services registrieren
   AndreasLoewer\SxFavicon\:
     resource: '../Classes/*'
+
+  # Controller explizit öffentlich machen (wichtig!)
+  AndreasLoewer\SxFavicon\Controller\ConfigController:
+    public: true
+    # optional hilfreich im BE-Kontext:
+    tags: ['backend.controller']
