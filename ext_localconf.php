@@ -13,22 +13,9 @@ call_user_func(function () {
     ];
 
     try {
-        // Backend-Modul (unter Site Management)
-        \TYPO3\CMS\Extbase\Utility\ExtensionUtility::registerModule(
-            'SxFavicon',
-            'site',
-            'favicons',
-            '',
-            [\AndreasLoewer\SxFavicon\Controller\ConfigController::class => 'index,save'],
-            [
-                'access' => 'admin',
-                'icon' => 'EXT:sx_favicon/Resources/Public/Icons/module.svg',
-                'labels' => 'LLL:EXT:sx_favicon/Resources/Private/Language/locallang_mod.xlf'
-            ]
-        );
-        error_log('[sx_favicon] registerModule OK');
+
     } catch (\Throwable $e) {
-        error_log('[sx_favicon] registerModule FAILED: ' . $e->getMessage());
+        // error_log('[sx_favicon] registerModule FAILED: ' . $e->getMessage());
     }
 
     // Fluid ViewHelper Namespace
