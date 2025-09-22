@@ -8,53 +8,31 @@ use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-/**
- * Backend-Controller für das Favicons-Modul (TYPO3 12.4).
- *
- * - PSR-7 kompatibel (ServerRequestInterface)
- * - Verwendet ModuleTemplateFactory::create($request)
- * - Einfache HTML-Ausgabe (kein Fluid notwendig)
- *
- * Erwartete Umgebung:
- * - Configuration/Backend/Modules.php mit routes -> target auf ::index / ::save
- * - Configuration/Services.yaml: Controller als public + autowire
- * - Configuration/Icons.php: iconIdentifier registriert
- * - Tabelle tx_sxfavicon_config (site_identifier, svg, light, dark, tstamp)
- */
 final class ConfigController
 {
     public function __construct(
         private readonly ModuleTemplateFactory $moduleTemplateFactory,
         private readonly ConnectionPool $connectionPool,
         private readonly SiteFinder $siteFinder,
-        // Falls du später Generator-Logik einhängen willst, kannst du hier eine Service-Dependency ergänzen.
-        // private readonly \AndreasLoewer\SxFavicon\Service\GeneratorService $generatorService,
     ) {}
 
     /**
-     * Übersicht + Formular.
+     * Formular anzeigen.
      */
     public function index(ServerRequestInterface $request): ResponseInterface
     {
         $moduleTemplate = $this->moduleTemplateFactory->create($request);
         $moduleTemplate->setTitle('Favicons');
 
-        // Aktuelle Site ermitteln (aus Query ?site=... oder Erste im System)
         [$site, $siteIdentifier] = $this->resolveSite($request);
-
-        // Aktuelle Konfiguration lesen
         $config = $this->fetchConfig($siteIdentifier);
 
-        // HTML rendern (einfaches Formular)
-        $content = $this->renderForm($site, $siteIdentifier, $config);
-
-        // Optional: Messages/Buttons könnten hier ergänzt werden
-        $moduleTemplate->setContent($content);
+        $moduleTemplate->setContent(
+            $this->renderForm($site, $siteIdentifier, $config)
+        );
 
         return $moduleTemplate->renderResponse();
     }
@@ -66,17 +44,16 @@ final class ConfigController
     {
         [$site, $siteIdentifier] = $this->resolveSite($request);
 
-        $post = $request->getParsedBody() ?? [];
+        $post  = $request->getParsedBody() ?? [];
         $svg   = trim((string)($post['svg']   ?? ''));
         $light = trim((string)($post['light'] ?? ''));
         $dark  = trim((string)($post['dark']  ?? ''));
 
         $this->upsertConfig($siteIdentifier, $svg, $light, $dark);
 
-        // TODO: Hier ggf. Favicons generieren lassen:
+        // Optional: Hier könnte ein Generator-Service aufgerufen werden
         // $this->generatorService->generate($siteIdentifier, $svg, $light, $dark);
 
-        // Zurück zur Übersicht (gleiches Request-Objekt wiederverwenden)
         return $this->index($request);
     }
 
@@ -85,37 +62,34 @@ final class ConfigController
     // ---------------------------------------------------------------------
 
     /**
-     * Ermittelt die aktuelle Site anhand von ?site=<identifier> oder nimmt die erste Site.
+     * Aktuelle Site aus Request (Query ?site=...) oder erste verfügbare Site.
      *
-     * @return array{0: Site, 1: string} [Site, siteIdentifier]
+     * @return array{0: Site, 1: string}
      */
     private function resolveSite(ServerRequestInterface $request): array
     {
         $query = $request->getQueryParams();
         $requestedIdentifier = isset($query['site']) ? (string)$query['site'] : null;
 
-        // Versuche direkte Ermittlung über Request-Attribute (falls vorhanden)
         $siteAttr = $request->getAttribute('site');
         if ($siteAttr instanceof Site) {
             return [$siteAttr, $siteAttr->getIdentifier()];
         }
 
-        // Sonst alle Sites holen
         $sites = $this->siteFinder->getAllSites();
         if ($requestedIdentifier && isset($sites[$requestedIdentifier])) {
             return [$sites[$requestedIdentifier], $requestedIdentifier];
         }
 
-        // Fallback: erste Site
-        /** @var Site $firstSite */
-        $firstSite = reset($sites);
-        $identifier = $firstSite instanceof Site ? $firstSite->getIdentifier() : 'default';
+        /** @var Site $first */
+        $first = reset($sites);
+        $identifier = $first instanceof Site ? $first->getIdentifier() : 'default';
 
-        return [$firstSite, $identifier];
+        return [$first, $identifier];
     }
 
     /**
-     * Liest die Konfiguration zu einer Site.
+     * Konfiguration für Site lesen.
      *
      * @return array{svg:string, light:string, dark:string}
      */
@@ -128,7 +102,7 @@ final class ConfigController
                 $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier))
             )
             ->executeQuery()
-            ->fetchAssociative();
+            ->fetchAssociative() ?: [];
 
         return [
             'svg'   => (string)($row['svg']   ?? ''),
@@ -138,7 +112,7 @@ final class ConfigController
     }
 
     /**
-     * Upsert der Konfiguration für eine Site.
+     * Konfiguration upserten.
      */
     private function upsertConfig(string $siteIdentifier, string $svg, string $light, string $dark): void
     {
@@ -160,13 +134,7 @@ final class ConfigController
                     'dark'   => $dark,
                     'tstamp' => time(),
                 ],
-                ['site_identifier' => $siteIdentifier],
-                [
-                    \PDO::PARAM_STR,
-                    \PDO::PARAM_STR,
-                    \PDO::PARAM_STR,
-                    \PDO::PARAM_INT,
-                ]
+                ['site_identifier' => $siteIdentifier]
             );
         } else {
             $conn->insert(
@@ -178,24 +146,14 @@ final class ConfigController
                     'dark'   => $dark,
                     'tstamp' => time(),
                     'crdate' => time(),
-                ],
-                [
-                    \PDO::PARAM_STR,
-                    \PDO::PARAM_STR,
-                    \PDO::PARAM_STR,
-                    \PDO::PARAM_STR,
-                    \PDO::PARAM_INT,
-                    \PDO::PARAM_INT,
                 ]
             );
         }
     }
 
     /**
-     * Simples HTML-Formular (ohne Fluid), kompatibel mit TYPO3 BE.
+     * Einfaches Formular (ohne Fluid) für TYPO3 BE.
      *
-     * @param Site   $site
-     * @param string $siteIdentifier
      * @param array{svg:string, light:string, dark:string} $config
      */
     private function renderForm(Site $site, string $siteIdentifier, array $config): string
@@ -205,15 +163,16 @@ final class ConfigController
         $siteOptions = '';
         foreach ($this->siteFinder->getAllSites() as $id => $s) {
             $sel = $id === $siteIdentifier ? ' selected' : '';
-            $siteOptions .= '<option value="'.$h($id).'"'.$sel.'>'.$h($id).'</option>';
+            $siteOptions .= '<option value="'.$h((string)$id).'"'.$sel.'>'.$h((string)$id).'</option>';
         }
 
-        // Einfache Styles für Abstände im BE
         $style = 'style="display:block;width:100%;max-width:640px"';
 
         $html = [];
         $html[] = '<div class="module">';
         $html[] = '  <h1>Favicons</h1>';
+
+        // Site-Wechsel (GET)
         $html[] = '  <form method="get" action="">';
         $html[] = '    <input type="hidden" name="route" value="/module/site/favicons">';
         $html[] = '    <label>Site&nbsp;';
@@ -221,6 +180,7 @@ final class ConfigController
         $html[] = '    </label>';
         $html[] = '  </form>';
 
+        // Speichern (POST)
         $html[] = '  <form method="post" action="?route=/module/site/favicons/save&amp;site='.$h($siteIdentifier).'">';
         $html[] = '    <div class="form-section">';
         $html[] = '      <label>SVG (FileReference UID oder Pfad)';
@@ -246,7 +206,7 @@ final class ConfigController
         $html[] = '  </form>';
 
         $html[] = '  <hr>';
-        $html[] = '  <p>Nach dem Speichern liefert die Middleware (bei korrekt konfigurierten Quellen) folgende Pfade aus:</p>';
+        $html[] = '  <p>Bereitgestellte Pfade (wenn Quellen konfiguriert & generiert):</p>';
         $html[] = '  <ul>';
         $html[] = '    <li><code>/favicon.ico</code></li>';
         $html[] = '    <li><code>/favicon.svg</code></li>';
