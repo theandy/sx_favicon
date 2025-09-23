@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 use AndreasLoewer\SxFavicon\Controller\ConfigController;
 
+error_log('[sx_favicon] Modules.php loaded');   // <— Debug: sollte im Log erscheinen
+
 return [
     'site_favicons_v2' => [              // <— NEUER KEY
         'parent' => 'site',
