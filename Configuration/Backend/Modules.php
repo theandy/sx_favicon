@@ -1,26 +1,18 @@
 <?php
 declare(strict_types=1);
 
-use AndreasLoewer\SxFavicon\Controller\ConfigController;
-
-error_log('[sx_favicon] Modules.php loaded');
-
 return [
     'site_favicons_v2' => [
         'parent' => 'site',
         'access' => 'admin',
         'workspaces' => 'live',
-        'path' => '/module/site/sxfv',
         'iconIdentifier' => 'module-sx-favicon',
         'labels' => 'LLL:EXT:sx_favicon/Resources/Private/Language/locallang_mod.xlf',
-        'routes' => [
-            '_default' => [
-                'target' => ConfigController::class . '::index',
-            ],
-            'save' => [
-                'path'   => '/save',
-                'target' => ConfigController::class . '::save',
-            ],
+
+        // WICHTIG: benannte Route aus Routes.php
+        'route' => 'sx_favicon.module',
+        'additionalRoutes' => [
+            'sx_favicon.module.save',
         ],
     ],
 ];
