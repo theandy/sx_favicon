@@ -9,7 +9,7 @@ return [
         'iconIdentifier' => 'module-sx-favicon',
         'labels' => 'LLL:EXT:sx_favicon/Resources/Private/Language/locallang_mod.xlf',
 
-        // WICHTIG: benannte Route aus Routes.php
+        // <<< WICHTIG: Default-Route-Name MUSS hier stehen
         'route' => 'sx_favicon.module',
         'additionalRoutes' => [
             'sx_favicon.module.save',
